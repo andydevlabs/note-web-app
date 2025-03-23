@@ -1,0 +1,11 @@
+{
+  "name": "note-app",
+  "version": "1.0.0",
+  "description": "This is a taking note app made with nodejs to understand how backend web development works",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "andydevlabs",
+  "license": "ISC"
+}
