@@ -9,6 +9,10 @@ app.get("/", (req, res) => {
     res.render("homePage");
 });
 
+app.get("/login", (req, res) => {
+    res.send("This is the login page");
+});
+
 app.listen(port, () => {
     console.log(`Server listening on port ${port}`);
 });
