@@ -18,6 +18,10 @@
 
         <main>
             <form action="/register" method="POST">
+                <% validationError.forEach(error => { %>
+                <p class="notice"><%= error %></p>
+                <% }); %>
+
                 <fieldset>
                     <legend>Create account</legend>
                     <label for="username"><small>Username</small></label>
