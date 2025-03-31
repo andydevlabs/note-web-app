@@ -1,4 +1,6 @@
 const express = require("express");
+const db = require("better-sqlite3")("note-app.db", options);
+
 const app = express();
 const port = 3000;
 
