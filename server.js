@@ -43,6 +43,18 @@ app.post("/register", (req, res) => {
     if (proccessed_username && !proccessed_username.match(/^[a-zA-Z0-9]+$/))
         validationError.push("Username can only contain letters and numbers");
 
+    // Password validation
+    proccessed_password = req.body.password;
+    if (!proccessed_password)
+        validationError.push("You must provide a password");
+
+    if (proccessed_password && proccessed_password.length < 8)
+        validationError.push("Password must be at least 8 characters");
+
+    if (proccessed_password && proccessed_password.length > 64)
+        validationError.push("Password cannot exceed 64 characters");
+
+
     if (validationError.length) {
         return res.render("homePage", { validationError });
     } else {
