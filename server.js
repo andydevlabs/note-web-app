@@ -1,5 +1,6 @@
 const bcrypt = require("bcryptjs");
-
+const jwt = require("jsonwebtoken")
+require("dotenv").config();
 const express = require("express");
 const db = require("better-sqlite3")("note-app.db");
 
@@ -70,6 +71,16 @@ app.post("/register", async (req, res) => {
             `INSERT INTO "user"(username, password) VALUES (? , ?)`
         );
         insertUser.run(proccessed_username, hash_password);
+
+        // cookie handling
+        const userToken = jwt.sign({id: 1, username: proccessed_username}, process.env.JWT_SECRET)
+
+        res.cookie("authentication-token", userToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: "strict",
+            maxAge: 1000 * 60 * 60 
+        })
 
         res.send("Thank you for filling the forms");
     }
