@@ -1,5 +1,5 @@
 const express = require("express");
-const db = require("better-sqlite3")("note-app.db", options);
+const db = require("better-sqlite3")("note-app.db");
 
 const app = express();
 const port = 3000;
@@ -60,9 +60,22 @@ app.post("/register", (req, res) => {
     if (validationError.length) {
         return res.render("homePage", { validationError });
     } else {
-        res.send("Thank you for feeling the forms");
+        const insertUser = db.prepare(`INSERT INTO "user"(username, password) VALUES (? , ?)`);
+        insertUser.run(proccessed_username, proccessed_password);
+
+        res.send("Thank you for filling the forms");
     }
+
 });
+
+const createTableUser = db.prepare(`
+    CREATE TABLE IF NOT EXISTS user(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username STRING NOT NULL UNIQUE,
+    password STRING NOT NULL)`);
+
+createTableUser.run();
+
 
 app.listen(port, () => {
     console.log(`Server listening on port ${port}`);
