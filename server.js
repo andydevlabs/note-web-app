@@ -1,3 +1,5 @@
+const bcrypt = require("bcryptjs");
+
 const express = require("express");
 const db = require("better-sqlite3")("note-app.db");
 
@@ -21,7 +23,7 @@ app.get("/login", (req, res) => {
     res.render("loginPage");
 });
 
-app.post("/register", (req, res) => {
+app.post("/register", async (req, res) => {
     const validationError = [];
 
     if (typeof req.body.username !== "string") {
@@ -56,16 +58,21 @@ app.post("/register", (req, res) => {
     if (proccessed_password && proccessed_password.length > 64)
         validationError.push("Password cannot exceed 64 characters");
 
-
     if (validationError.length) {
         return res.render("homePage", { validationError });
     } else {
-        const insertUser = db.prepare(`INSERT INTO "user"(username, password) VALUES (? , ?)`);
-        insertUser.run(proccessed_username, proccessed_password);
+        // hash the password
+        const salt = await bcrypt.genSalt(10);
+        const hash_password = await bcrypt.hash(proccessed_password, salt);
+
+        // query
+        const insertUser = db.prepare(
+            `INSERT INTO "user"(username, password) VALUES (? , ?)`
+        );
+        insertUser.run(proccessed_username, hash_password);
 
         res.send("Thank you for filling the forms");
     }
-
 });
 
 const createTableUser = db.prepare(`
@@ -75,7 +82,6 @@ const createTableUser = db.prepare(`
     password STRING NOT NULL)`);
 
 createTableUser.run();
-
 
 app.listen(port, () => {
     console.log(`Server listening on port ${port}`);
