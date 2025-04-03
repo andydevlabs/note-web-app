@@ -1,18 +1,35 @@
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken")
+const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
 require("dotenv").config();
+
 const express = require("express");
 const db = require("better-sqlite3")("note-app.db");
 
 const app = express();
-const port = 3000;
+const port = 5030;
+
+app.use(cookieParser());
 
 app.set("view engine", "ejs");
 app.use(express.static("public"));
 app.use(express.urlencoded({ extended: true }));
 
+
+// global middleware
 app.use((req, res, next) => {
     res.locals.validationError = [];
+
+    // verify the jwt cookie
+    try {
+        const decoded = jwt.verify(req.cookies.authentication,process.env.JWT_SECRET);
+        console.log(decoded);
+        req.authenticationToken = decoded;
+    } catch (error) {
+        req.authenticationToken = false;
+    }
+
+    res.locals.authenticationToken = req.authenticationToken;
     next();
 });
 
@@ -70,17 +87,28 @@ app.post("/register", async (req, res) => {
         const insertUser = db.prepare(
             `INSERT INTO "user"(username, password) VALUES (? , ?)`
         );
-        insertUser.run(proccessed_username, hash_password);
+        const insertedUser = insertUser.run(proccessed_username, hash_password);
+
+        const selectUserId = db.prepare(`
+            SELECT * FROM "user" WHERE id = ?`);
+        const registeredUser = selectUserId.get(insertedUser.lastInsertRowid);
 
         // cookie handling
-        const userToken = jwt.sign({id: 1, username: proccessed_username}, process.env.JWT_SECRET)
+        const userToken = jwt.sign(
+            {
+                id: registeredUser.id,
+                username: registeredUser.username,
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: "24h" }
+        );
 
-        res.cookie("authentication-token", userToken, {
+        res.cookie("authentication", userToken, {
             httpOnly: true,
             secure: true,
             sameSite: "strict",
-            maxAge: 1000 * 60 * 60 
-        })
+            maxAge: 1000 * 60 * 60 * 24,
+        });
 
         res.send("Thank you for filling the forms");
     }
