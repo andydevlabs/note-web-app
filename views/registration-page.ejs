@@ -2,7 +2,14 @@
 <html lang="en">
     <%- include("includes/head") %>
     <body>
-        <%- include("includes/header") %>
+        <header>
+            <h2>
+                <a href="/">Note App</a>
+            </h2>
+            <nav>
+                <a href="/login">Sign In</a>
+            </nav>
+        </header>
 
         <main>
             <form action="/register" method="POST">

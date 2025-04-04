@@ -36,7 +36,11 @@ app.use((req, res, next) => {
 });
 
 app.get("/", (req, res) => {
-    res.render("registration-page");
+    if (req.authenticationToken) {
+        res.render("dashboard-page");
+    } else {
+        res.render("registration-page");
+    }
 });
 
 app.get("/login", (req, res) => {

@@ -1,25 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
-        <%- include("includes/head") %>
+    <%- include("includes/head") %>
     <body>
         <header>
             <h2>
                 <a href="/">Note App</a>
             </h2>
             <nav>
-                <a href="/register">Create an account</a>
+                <% if (authenticationToken) { %>
+                <a href="/create-post">Create Post</a>
+                <a href="/logout">Log out</a>
+                <% } else { %>
+                <a href="/login">Sign in</a>
+                <% } %>
             </nav>
         </header>
-
         <main>
             <h3>Login Page</h3>
-            <form action="/login" method="POST">
+            <form action="/register" method="POST">
                 <% validationError.forEach(error => { %>
                 <p class="notice"><%= error %></p>
                 <% }); %>
 
                 <fieldset>
-                    <legend>Welcome back</legend>
+                    <legend>Create account</legend>
                     <label for="username"><small>Username</small></label>
                     <input
                         type="text"
@@ -35,7 +39,7 @@
                         autocomplete="off"
                     />
                     <br />
-                    <button type="submit">Sign In</button>
+                    <button type="submit">Sign Up</button>
                 </fieldset>
             </form>
         </main>
