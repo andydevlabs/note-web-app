@@ -14,7 +14,7 @@
         <main>
             <h3>Login Page</h3>
             <form action="/login" method="POST">
-                <% validationError.forEach(error => { %>
+                <% loginValidationError.forEach(error => { %>
                 <p class="notice"><%= error %></p>
                 <% }); %>
 

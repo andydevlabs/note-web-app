@@ -16,32 +16,8 @@
             </nav>
         </header>
         <main>
-            <h3>Login Page</h3>
-            <form action="/register" method="POST">
-                <% validationError.forEach(error => { %>
-                <p class="notice"><%= error %></p>
-                <% }); %>
-
-                <fieldset>
-                    <legend>Create account</legend>
-                    <label for="username"><small>Username</small></label>
-                    <input
-                        type="text"
-                        id="username"
-                        name="username"
-                        autocomplete="off"
-                    />
-                    <label for="password"><small>Password</small></label>
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        autocomplete="off"
-                    />
-                    <br />
-                    <button type="submit">Sign Up</button>
-                </fieldset>
-            </form>
+            <h3>Your post</h3>
+            <p>Lorem ipsum dolor sit amet consectetur, adipisicing elit. Ratione quam aliquam vel quod dignissimos quidem? Molestiae sint cumque eveniet nemo dolor inventore corporis dolores recusandae laudantium maxime consequatur, explicabo ad.</p>
         </main>
 
         <%- include("includes/footer") %>
