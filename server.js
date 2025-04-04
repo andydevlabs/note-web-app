@@ -180,7 +180,7 @@ app.post("/register", async (req, res) => {
             hash_password
         );
 
-        res.send("Thank you for filling the forms");
+        res.redirect("/login");
     }
 });
 
