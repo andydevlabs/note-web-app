@@ -71,42 +71,47 @@ app.post("/login", async (req, res) => {
     if (!logged_password)
         loginValidationError.push("You must provide a password");
 
-    // check if the username is in the database
-    const getUsername = db.prepare(`SELECT * FROM "user" WHERE username = ?`);
-    const userExistsCheck = getUsername.get(logged_username);
-    if (!userExistsCheck) {
-        loginValidationError.push("Invalid username / password");
-    }
-    // check if the password match is in the database
-    const passwordMatch = bcrypt.compare(
-        logged_password,
-        userExistsCheck.password
-    );
-    if (!passwordMatch) {
-        loginValidationError.push("Invalid username / password");
+    if (logged_username && logged_password) {
+        // check if the username is in the database
+        const getUsername = db.prepare(
+            `SELECT * FROM "user" WHERE username = ?`
+        );
+        const userExistsCheck = getUsername.get(logged_username);
+        if (!userExistsCheck) {
+            loginValidationError.push("Invalid username / password");
+        } else {
+            // check if the password match is in the database
+            const passwordMatch = await bcrypt.compare(
+                logged_password,
+                userExistsCheck.password
+            );
+            if (!passwordMatch) {
+                loginValidationError.push("Invalid username / password");
+            } else {
+                // cookie handling
+                const userToken = jwt.sign(
+                    {
+                        id: userExistsCheck.id,
+                        username: userExistsCheck.username,
+                    },
+                    process.env.JWT_SECRET,
+                    { expiresIn: "24h" }
+                );
+
+                res.cookie("authentication", userToken, {
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: "strict",
+                    maxAge: 1000 * 60 * 60 * 24,
+                });
+
+                res.redirect("/");
+            }
+        }
     }
 
     if (loginValidationError.length) {
         return res.render("login-page", { loginValidationError });
-    } else {
-        // cookie handling
-        const userToken = jwt.sign(
-            {
-                id: userExistsCheck.id,
-                username: userExistsCheck.username,
-            },
-            process.env.JWT_SECRET,
-            { expiresIn: "24h" }
-        );
-
-        res.cookie("authentication", userToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: "strict",
-            maxAge: 1000 * 60 * 60 * 24,
-        });
-
-        res.redirect("/");
     }
 });
 
@@ -127,7 +132,7 @@ app.post("/register", async (req, res) => {
 
     // check if the username already exists
     const getUsername = db.prepare(`SELECT * FROM "user" WHERE username = ?`);
-    const usernameUniqueCheck = getUsername.run(proccessed_username);
+    const usernameUniqueCheck = getUsername.get(proccessed_username);
     if (usernameUniqueCheck) {
         registrationValidationError.push("Username already exists");
     }
