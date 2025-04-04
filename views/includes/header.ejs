@@ -1,0 +1,13 @@
+<header>
+    <h2>
+        <a href="/">Note App</a>
+    </h2>
+    <nav>
+        <% if (authenticationToken) { %>
+        <a href="/create-post">Create Post</a>
+        <a href="/logout">Log out</a>
+        <% } else { %>
+        <a href="/login">Sign in</a>
+        <% } %>
+    </nav>
+</header>

@@ -12,11 +12,12 @@
                 <a href="/">Note App</a>
             </h2>
             <nav>
-                <a href="#">Log In</a>
+                <a href="/register">Create an account</a>
             </nav>
         </header>
 
         <main>
+            <h3>Login Page</h3>
             <form action="/register" method="POST">
                 <% validationError.forEach(error => { %>
                 <p class="notice"><%= error %></p>

@@ -15,14 +15,16 @@ app.set("view engine", "ejs");
 app.use(express.static("public"));
 app.use(express.urlencoded({ extended: true }));
 
-
 // global middleware
 app.use((req, res, next) => {
     res.locals.validationError = [];
 
     // verify the jwt cookie
     try {
-        const decoded = jwt.verify(req.cookies.authentication,process.env.JWT_SECRET);
+        const decoded = jwt.verify(
+            req.cookies.authentication,
+            process.env.JWT_SECRET
+        );
         console.log(decoded);
         req.authenticationToken = decoded;
     } catch (error) {
@@ -34,11 +36,15 @@ app.use((req, res, next) => {
 });
 
 app.get("/", (req, res) => {
-    res.render("homePage");
+    res.render("registration-page");
 });
 
 app.get("/login", (req, res) => {
-    res.render("loginPage");
+    res.render("login-page");
+});
+
+app.get("/register", (req, res) => {
+    res.render("registration-page");
 });
 
 app.post("/register", async (req, res) => {
@@ -112,6 +118,11 @@ app.post("/register", async (req, res) => {
 
         res.send("Thank you for filling the forms");
     }
+});
+
+app.get("/logout", (req, res) => {
+    res.clearCookie("authentication");
+    res.redirect("/");
 });
 
 const createTableUser = db.prepare(`
