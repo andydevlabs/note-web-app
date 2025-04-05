@@ -1,10 +1,9 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
-require("dotenv").config();
-
 const express = require("express");
 const db = require("better-sqlite3")("note-app.db");
+require("dotenv").config();
 
 const app = express();
 const port = 5030;
@@ -62,57 +61,54 @@ app.post("/login", async (req, res) => {
         req.body.password = "";
     }
 
-    logged_username = req.body.username.trim();
+    const logged_username = req.body.username.trim();
+    const logged_password = req.body.password;
 
     if (!logged_username)
         loginValidationError.push("You must provide a username");
 
-    logged_password = req.body.password;
     if (!logged_password)
         loginValidationError.push("You must provide a password");
 
-    if (logged_username && logged_password) {
-        // check if the username is in the database
-        const getUsername = db.prepare(
-            `SELECT * FROM "user" WHERE username = ?`
+    const getUsername = db.prepare(`SELECT * FROM "user" WHERE username = ?`);
+    const userExistsCheck = getUsername.get(logged_username);
+    
+
+    if (!userExistsCheck && logged_username.length)
+        loginValidationError.push("Invalid username / password");
+
+    if (userExistsCheck && logged_password) {
+        const passwordMatch = await bcrypt.compare(
+            logged_password,
+            userExistsCheck.password
         );
-        const userExistsCheck = getUsername.get(logged_username);
-        if (!userExistsCheck) {
+
+        if (!passwordMatch)
             loginValidationError.push("Invalid username / password");
-        } else {
-            // check if the password match is in the database
-            const passwordMatch = await bcrypt.compare(
-                logged_password,
-                userExistsCheck.password
-            );
-            if (!passwordMatch) {
-                loginValidationError.push("Invalid username / password");
-            } else {
-                // cookie handling
-                const userToken = jwt.sign(
-                    {
-                        id: userExistsCheck.id,
-                        username: userExistsCheck.username,
-                    },
-                    process.env.JWT_SECRET,
-                    { expiresIn: "24h" }
-                );
-
-                res.cookie("authentication", userToken, {
-                    httpOnly: true,
-                    secure: true,
-                    sameSite: "strict",
-                    maxAge: 1000 * 60 * 60 * 24,
-                });
-
-                res.redirect("/");
-            }
-        }
     }
 
     if (loginValidationError.length) {
         return res.render("login-page", { loginValidationError });
     }
+
+    // cookie handling
+    const userToken = jwt.sign(
+        {
+            id: userExistsCheck.id,
+            username: userExistsCheck.username,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "24h" }
+    );
+
+    res.cookie("authentication", userToken, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "strict",
+        maxAge: 1000 * 60 * 60 * 24,
+    });
+
+    res.redirect("/");
 });
 
 app.post("/register", async (req, res) => {
@@ -134,7 +130,7 @@ app.post("/register", async (req, res) => {
     const getUsername = db.prepare(`SELECT * FROM "user" WHERE username = ?`);
     const usernameUniqueCheck = getUsername.get(proccessed_username);
     if (usernameUniqueCheck) {
-        registrationValidationError.push("Username already exists");
+        registrationValidationError.push("Username already taken");
     }
 
     if (proccessed_username && proccessed_username.length < 3)
