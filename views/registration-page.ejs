@@ -13,6 +13,7 @@
 
         <main>
             <form action="/register" method="POST">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
                 <% registrationValidationError.forEach(error => { %>
                 <p class="notice"><%= error %></p>
                 <% }); %>

@@ -3,10 +3,15 @@ const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 const express = require("express");
 const db = require("better-sqlite3")("note-app.db");
+var Tokens = require("csrf");
+const csrfProtect = require("./middleware/csrfProtection");
 require("dotenv").config();
+
 
 const app = express();
 const port = 5030;
+const tokens = new Tokens();
+
 
 app.use(cookieParser());
 
@@ -32,6 +37,20 @@ app.use((req, res, next) => {
     }
 
     res.locals.authenticationToken = req.authenticationToken;
+
+    let secret = req.cookies._csrfSecret;
+    if (!secret) {
+        secret = tokens.secretSync();
+        res.cookie("_csrfSecret", secret, {
+            httpOnly: true,
+            secure: false,
+            sameSite: "strict",
+        });
+    }
+
+    const csrfToken = tokens.create(secret);
+    res.locals.csrfToken = csrfToken;
+
     next();
 });
 
@@ -51,7 +70,7 @@ app.get("/register", (req, res) => {
     res.render("registration-page");
 });
 
-app.post("/login", async (req, res) => {
+app.post("/login", csrfProtect, async (req, res) => {
     const loginValidationError = [];
 
     if (typeof req.body.username !== "string") {
@@ -72,7 +91,6 @@ app.post("/login", async (req, res) => {
 
     const getUsername = db.prepare(`SELECT * FROM "user" WHERE username = ?`);
     const userExistsCheck = getUsername.get(logged_username);
-    
 
     if (!userExistsCheck && logged_username.length)
         loginValidationError.push("Invalid username / password");
@@ -111,7 +129,7 @@ app.post("/login", async (req, res) => {
     res.redirect("/");
 });
 
-app.post("/register", async (req, res) => {
+app.post("/register", csrfProtect, async (req, res) => {
     const registrationValidationError = [];
 
     if (typeof req.body.username !== "string") {
@@ -121,44 +139,44 @@ app.post("/register", async (req, res) => {
         req.body.password = "";
     }
 
-    proccessed_username = req.body.username.trim();
+    const processed_username = req.body.username.trim();
 
-    if (!proccessed_username)
+    if (!processed_username)
         registrationValidationError.push("You must provide a username");
 
     // check if the username already exists
     const getUsername = db.prepare(`SELECT * FROM "user" WHERE username = ?`);
-    const usernameUniqueCheck = getUsername.get(proccessed_username);
+    const usernameUniqueCheck = getUsername.get(processed_username);
     if (usernameUniqueCheck) {
         registrationValidationError.push("Username already taken");
     }
 
-    if (proccessed_username && proccessed_username.length < 3)
+    if (processed_username && processed_username.length < 3)
         registrationValidationError.push(
             "Username must be at least 3 characters"
         );
 
-    if (proccessed_username && proccessed_username.length > 12)
+    if (processed_username && processed_username.length > 12)
         registrationValidationError.push(
             "Username cannot exceed 12 characters"
         );
 
-    if (proccessed_username && !proccessed_username.match(/^[a-zA-Z0-9]+$/))
+    if (processed_username && !processed_username.match(/^[a-zA-Z0-9]+$/))
         registrationValidationError.push(
             "Username can only contain letters and numbers"
         );
 
     // Password validation
-    proccessed_password = req.body.password;
-    if (!proccessed_password)
+    const processed_password = req.body.password;
+    if (!processed_password)
         registrationValidationError.push("You must provide a password");
 
-    if (proccessed_password && proccessed_password.length < 8)
+    if (processed_password && processed_password.length < 8)
         registrationValidationError.push(
             "Password must be at least 8 characters"
         );
 
-    if (proccessed_password && proccessed_password.length > 64)
+    if (processed_password && processed_password.length > 64)
         registrationValidationError.push(
             "Password cannot exceed 64 characters"
         );
@@ -168,11 +186,11 @@ app.post("/register", async (req, res) => {
     } else {
         // hash the password
         const salt = await bcrypt.genSalt(10);
-        const hash_password = await bcrypt.hash(proccessed_password, salt);
+        const hash_password = await bcrypt.hash(processed_password, salt);
 
         // query
         db.prepare(`INSERT INTO "user"(username, password) VALUES (? , ?)`).run(
-            proccessed_username,
+            processed_username,
             hash_password
         );
 
