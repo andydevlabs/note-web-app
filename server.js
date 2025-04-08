@@ -95,6 +95,7 @@ app.post("/login", csrfProtect, async (req, res) => {
     if (!userExistsCheck && logged_username.length)
         loginValidationError.push("Invalid username / password");
 
+    // password checking
     if (userExistsCheck && logged_password) {
         const passwordMatch = await bcrypt.compare(
             logged_password,
