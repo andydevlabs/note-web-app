@@ -80,6 +80,10 @@ app.get("/create-post", (req, res) => {
     res.render("create-post-page");
 });
 
+app.get("/edit-post/:post_id", (req, res) => {
+    res.render("edit-post-page")
+})
+
 app.post("/register", csrfProtect, async (req, res) => {
     const registrationValidationError = [];
 

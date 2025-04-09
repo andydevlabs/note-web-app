@@ -17,12 +17,16 @@
         </header>
         <main>
             <h3>Your post</h3>
-            <% posts.forEach(post => { %>
+            <% if (posts.length) { posts.forEach(post => { %>
             <fieldset>
                 <legend><%= post.post_title %></legend>
                 <p><%= post.post_content %></p>
+                <a href="/edit-post/<%= post.post_id %>" class="button">Edit Post</a>
+                <button type="submit">Delete Post</button>
             </fieldset>
-            <% }); %>
+            <% }); } else { %>
+            <p>You haven't post anything yet</p>
+            <% }%>
         </main>
 
         <%- include("includes/footer") %>

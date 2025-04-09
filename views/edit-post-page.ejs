@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+    <%- include("includes/head") %>
+    <body>
+        <header>
+            <h2>
+                <a href="/">Note App</a>
+            </h2>
+        </header>
+
+        <main>
+            <form action="/create-post" method="POST">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                <% postCreationValidationError.forEach(error => { %>
+                <p class="notice"><%= error %></p>
+                <% }); %>
+
+                <fieldset>
+                    <legend>Create a new post</legend>
+                    <label for="title"><small>Title</small></label>
+                    <input
+                        type="text"
+                        id="title"
+                        name="title"
+                        autocomplete="off"
+                        value="<%= locals.title || '' %>"
+                    />
+                    <label for="content"><small>Share your thoughts</small></label>
+                    <textarea
+                        type="textarea"
+                        id="content"
+                        name="content"
+                        autocomplete="off"
+                    ><%= locals.content || '' %></textarea>
+                    <br />
+                    <button type="submit">Post</button>
+                </fieldset>
+            </form>
+        </main>
+
+        <%- include("includes/footer") %>
+    </body>
+</html>
