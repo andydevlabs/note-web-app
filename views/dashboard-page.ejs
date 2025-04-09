@@ -17,7 +17,12 @@
         </header>
         <main>
             <h3>Your post</h3>
-            <p>Lorem ipsum dolor sit amet consectetur, adipisicing elit. Ratione quam aliquam vel quod dignissimos quidem? Molestiae sint cumque eveniet nemo dolor inventore corporis dolores recusandae laudantium maxime consequatur, explicabo ad.</p>
+            <% posts.forEach(post => { %>
+            <fieldset>
+                <legend><%= post.post_title %></legend>
+                <p><%= post.post_content %></p>
+            </fieldset>
+            <% }); %>
         </main>
 
         <%- include("includes/footer") %>

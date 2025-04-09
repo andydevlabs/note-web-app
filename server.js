@@ -21,7 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use((req, res, next) => {
     res.locals.registrationValidationError = [];
     res.locals.loginValidationError = [];
-    res.locals.postCreationValidationError = []; 
+    res.locals.postCreationValidationError = [];
 
     // verify the jwt cookie
     try {
@@ -54,6 +54,14 @@ app.use((req, res, next) => {
 
 app.get("/", (req, res) => {
     if (req.authenticationToken) {
+        const getAllPosts = db.prepare(
+            `SELECT * FROM post WHERE author_id = ?`
+        );
+        const allPosts = getAllPosts.all(req.authenticationToken.id);
+
+        console.log(allPosts);
+        res.locals.posts = allPosts;
+        
         return res.render("dashboard-page");
     } else {
         res.render("registration-page");
@@ -202,7 +210,7 @@ app.post("/login", csrfProtect, async (req, res) => {
 });
 
 app.post("/create-post", (req, res) => {
-    const postCreationValidationError = []
+    const postCreationValidationError = [];
 
     if (typeof req.body.title !== "string") {
         req.body.title = "";
@@ -213,7 +221,6 @@ app.post("/create-post", (req, res) => {
 
     const processed_title = req.body.title.trim();
     const processed_content = req.body.content;
-
 
     if (!processed_title)
         postCreationValidationError.push("You must provide a title");
@@ -230,7 +237,9 @@ app.post("/create-post", (req, res) => {
     }
 
     const author_id = req.authenticationToken.id;
-    const insertPost = db.prepare(`INSERT INTO post (post_title, post_content, author_id) VALUES (?, ?, ?)`);
+    const insertPost = db.prepare(
+        `INSERT INTO post (post_title, post_content, author_id) VALUES (?, ?, ?)`
+    );
     insertPost.run(processed_title, processed_content, author_id);
 
     res.redirect("/");
@@ -250,8 +259,7 @@ const createTablePost = db.prepare(`
     author_id INTEGER NOT NULL,
     FOREIGN KEY (author_id) REFERENCES "user"(id))
     `);
-createTablePost.run()
-
+createTablePost.run();
 
 const createTableUser = db.prepare(`
     CREATE TABLE IF NOT EXISTS user(
@@ -259,7 +267,6 @@ const createTableUser = db.prepare(`
     username STRING NOT NULL UNIQUE,
     password STRING NOT NULL)`);
 createTableUser.run();
-
 
 app.listen(port, () => {
     console.log(`Server listening on port ${port}`);
