@@ -9,20 +9,22 @@
         </header>
 
         <main>
-            <form action="/post/edit" method="POST">
-                <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-                <% postCreationValidationError.forEach(error => { %>
-                <p class="notice"><%= error %></p>
-                <% }); %>
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <% postCreationValidationError.forEach(error => { %>
+            <p class="notice"><%= error %></p>
+            <% }); %>
 
-                <fieldset>
-                    <legend>Post details</legend>
-                    <h4><%= post.post_title %></h4>
-                    <p><%= post.post_content %></p>
-                    <a href="/post/edit/<%= post.post_id %>" class="button">Edit Post</a>
-                    <button type="submit">Delete Post</button>
-                </fieldset>
-            </form>
+            <fieldset>
+                <legend>Post details</legend>
+                <h4><%= post.post_title %></h4>
+                <p><%= post.post_content %></p>
+                <a href="/post/edit/<%= post.post_id %>" class="button"
+                    >Edit Post</a
+                >
+                <form action="/post/delete/<%= post.post_id %>" method="POST">
+                    <button type="delete">Delete Post</button>
+                </form>
+            </fieldset>
         </main>
 
         <%- include("includes/footer") %>

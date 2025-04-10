@@ -4,7 +4,7 @@ const cookieParser = require("cookie-parser");
 const express = require("express");
 const db = require("better-sqlite3")("note-app.db");
 var Tokens = require("csrf");
-const csrfProtect = require("./middleware/csrfProtection");
+const csrfProtection = require("./middleware/csrfProtection");
 require("dotenv").config();
 
 const app = express();
@@ -50,6 +50,7 @@ app.use((req, res, next) => {
     res.locals.csrfToken = csrfToken;
 
     // TO DO: ask if I should create csrf token on every route or globally
+    // TO DO: clean all console.log
 
     next();
 });
@@ -88,9 +89,12 @@ app.get("/post/edit/:post_id", (req, res) => {
         const post = getPost.get(post_id);
         res.render("edit-post-page", { post });
     } else {
+        console.log("This error");
         return res.render("error-page");
     }
 });
+
+// TO DO : should I verify the type of post_id ?
 
 app.get("/post/:post_id", (req, res) => {
     // verify if user connected
@@ -103,19 +107,25 @@ app.get("/post/:post_id", (req, res) => {
             res.locals.post = post;
             return res.render("post-page", { post });
         } else {
+            console.log("This error");
             return res.render("error-page");
         }
     } else {
+        console.log("This error");
         res.render("error-page");
     }
 });
+
+// app.get("/post/delete/:post_id", csrfProtection, (req, res) => {
+//     res.render("error-page")
+// });
 
 app.get("/logout", (req, res) => {
     res.clearCookie("authentication");
     res.redirect("/");
 });
 
-app.post("/register", csrfProtect, async (req, res) => {
+app.post("/register", csrfProtection, async (req, res) => {
     const registrationValidationError = [];
 
     if (typeof req.body.username !== "string") {
@@ -184,7 +194,7 @@ app.post("/register", csrfProtect, async (req, res) => {
     }
 });
 
-app.post("/login", csrfProtect, async (req, res) => {
+app.post("/login", csrfProtection, async (req, res) => {
     const loginValidationError = [];
 
     if (typeof req.body.username !== "string") {
@@ -280,7 +290,7 @@ app.post("/create-post", (req, res) => {
     res.redirect("/");
 });
 
-app.post("/post/edit/:post_id", csrfProtect, (req, res) => {
+app.post("/post/edit/:post_id", csrfProtection, (req, res) => {
     const post_id = req.params.post_id;
 
     if (typeof req.body.post_title !== "string") {
@@ -299,6 +309,19 @@ app.post("/post/edit/:post_id", csrfProtect, (req, res) => {
     updatePost.run(updtatedPostTitle, updtatedPostContent, post_id);
 
     res.redirect(`/post/${post_id}`);
+});
+
+// TO DO ; should I put csrfToken here ?
+
+app.post("/post/delete/:post_id", (req, res) => {
+    if (req.authenticationToken) {
+        const post_id = req.params.post_id;
+        const deletePost = db.prepare(`DELETE FROM post WHERE post_id = ?`);
+        deletePost.run(post_id);
+        return res.redirect("/");
+    } else {
+        console.log("Error");
+    }
 });
 
 const createTablePost = db.prepare(`
