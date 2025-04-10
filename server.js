@@ -49,6 +49,8 @@ app.use((req, res, next) => {
     const csrfToken = tokens.create(secret);
     res.locals.csrfToken = csrfToken;
 
+    // TO DO: ask if I should create csrf token on every route or globally
+
     next();
 });
 
@@ -79,8 +81,15 @@ app.get("/create-post", (req, res) => {
     res.render("create-post-page");
 });
 
-app.get("/edit-post/:post_id", (req, res) => {
-    res.render("edit-post-page");
+app.get("/post/edit/:post_id", (req, res) => {
+    if (req.authenticationToken) {
+        const post_id = req.params.post_id;
+        const getPost = db.prepare(`SELECT * FROM post WHERE post_id = ?`);
+        const post = getPost.get(post_id);
+        res.render("edit-post-page", { post });
+    } else {
+        return res.render("error-page");
+    }
 });
 
 app.get("/post/:post_id", (req, res) => {
@@ -99,6 +108,11 @@ app.get("/post/:post_id", (req, res) => {
     } else {
         res.render("error-page");
     }
+});
+
+app.get("/logout", (req, res) => {
+    res.clearCookie("authentication");
+    res.redirect("/");
 });
 
 app.post("/register", csrfProtect, async (req, res) => {
@@ -266,9 +280,25 @@ app.post("/create-post", (req, res) => {
     res.redirect("/");
 });
 
-app.get("/logout", (req, res) => {
-    res.clearCookie("authentication");
-    res.redirect("/");
+app.post("/post/edit/:post_id", csrfProtect, (req, res) => {
+    const post_id = req.params.post_id;
+
+    if (typeof req.body.post_title !== "string") {
+        req.body.post_title = "";
+    }
+    if (typeof req.body.post_content !== "string") {
+        req.body.post_content = "";
+    }
+
+    const updtatedPostTitle = req.body.post_title.trim();
+    const updtatedPostContent = req.body.post_content;
+
+    const updatePost = db.prepare(
+        "UPDATE post SET post_title = ?, post_content = ? WHERE post_id = ?"
+    );
+    updatePost.run(updtatedPostTitle, updtatedPostContent, post_id);
+
+    res.redirect(`/post/${post_id}`);
 });
 
 const createTablePost = db.prepare(`

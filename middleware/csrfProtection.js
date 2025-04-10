@@ -11,7 +11,7 @@ function csrfProtection(req, res, next) {
     const csrfToken = req.body._csrf;
 
     if (!tokens.verify(csrfSecret, csrfToken)) {
-        return res.status(403).send("Invalid CSRF token");
+        return res.render("error-page");
     }
 
     next();
