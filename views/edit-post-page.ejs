@@ -9,7 +9,7 @@
         </header>
 
         <main>
-            <form action="/create-post" method="POST">
+            <form action="/edit-post/" method="POST">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
                 <% postCreationValidationError.forEach(error => { %>
                 <p class="notice"><%= error %></p>
@@ -33,7 +33,7 @@
                         autocomplete="off"
                     ><%= locals.content || '' %></textarea>
                     <br />
-                    <button type="submit">Post</button>
+                    <button type="submit">Save changes</button>
                 </fieldset>
             </form>
         </main>

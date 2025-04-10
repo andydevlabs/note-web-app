@@ -20,9 +20,7 @@
             <% if (posts.length) { posts.forEach(post => { %>
             <fieldset>
                 <legend><%= post.post_title %></legend>
-                <p><%= post.post_content %></p>
-                <a href="/edit-post/<%= post.post_id %>" class="button">Edit Post</a>
-                <button type="submit">Delete Post</button>
+                <a href="/post/<%= post.post_id %>"><%= post.post_content %></a>
             </fieldset>
             <% }); } else { %>
             <p>You haven't post anything yet</p>

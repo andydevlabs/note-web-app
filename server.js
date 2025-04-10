@@ -59,9 +59,8 @@ app.get("/", (req, res) => {
         );
         const allPosts = getAllPosts.all(req.authenticationToken.id);
 
-        console.log(allPosts);
         res.locals.posts = allPosts;
-        
+
         return res.render("dashboard-page");
     } else {
         res.render("registration-page");
@@ -81,8 +80,26 @@ app.get("/create-post", (req, res) => {
 });
 
 app.get("/edit-post/:post_id", (req, res) => {
-    res.render("edit-post-page")
-})
+    res.render("edit-post-page");
+});
+
+app.get("/post/:post_id", (req, res) => {
+    // verify if user connected
+    if (req.authenticationToken) {
+        // verify if the post exists
+        const post_id = req.params.post_id;
+        const getPost = db.prepare(`SELECT * FROM post WHERE post_id = ?`);
+        const post = getPost.get(post_id);
+        if (post) {
+            res.locals.post = post;
+            return res.render("post-page", { post });
+        } else {
+            return res.render("error-page");
+        }
+    } else {
+        res.render("error-page");
+    }
+});
 
 app.post("/register", csrfProtect, async (req, res) => {
     const registrationValidationError = [];
