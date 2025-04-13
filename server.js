@@ -82,47 +82,79 @@ app.get("/create-post", (req, res) => {
     res.render("create-post-page");
 });
 
+const postRouteParamsVerification = (req, res, toVerify) => {
+    if (!req.authenticationToken) {
+        return { error: true, message: "Not authenticated" };
+    }
+
+    const params = parseInt(toVerify);
+    if (isNaN(params) || params <= 0) {
+        return { error: true, message: "Invalid post ID" };
+    }
+    const getPost = db.prepare(
+        `SELECT * FROM post WHERE post_id = ? AND author_id = ?`
+    );
+    const post = getPost.get(params, req.authenticationToken.id);
+
+    if (!post) {
+        return { error: true, message: "Post not found" };
+    }
+
+    return { error: false, post: post };
+};
+
 app.get("/post/edit/:post_id", (req, res) => {
-    if (req.authenticationToken) {
-        const post_id = req.params.post_id;
-        const getPost = db.prepare(`SELECT * FROM post WHERE post_id = ?`);
-        const post = getPost.get(post_id);
-        res.render("edit-post-page", { post });
-    } else {
-        console.log("This error");
+    const result = postRouteParamsVerification(req, res, req.params.post_id);
+    if (result.error) {
         return res.render("error-page");
     }
+    return res.render("edit-post-page", { post: result.post });
 });
-
-// TO DO : should I verify the type of post_id ?
 
 app.get("/post/:post_id", (req, res) => {
-    // verify if user connected
-    if (req.authenticationToken) {
-        // verify if the post exists
-        const post_id = req.params.post_id;
-        const getPost = db.prepare(`SELECT * FROM post WHERE post_id = ?`);
-        const post = getPost.get(post_id);
-        if (post) {
-            res.locals.post = post;
-            return res.render("post-page", { post });
-        } else {
-            console.log("This error");
-            return res.render("error-page");
-        }
-    } else {
-        console.log("This error");
-        res.render("error-page");
+    const result = postRouteParamsVerification(req, res, req.params.post_id);
+    if (result.error) {
+        return res.render("error-page");
     }
+    return res.render("post-page", { post: result.post });
 });
-
-// app.get("/post/delete/:post_id", csrfProtection, (req, res) => {
-//     res.render("error-page")
-// });
 
 app.get("/logout", (req, res) => {
     res.clearCookie("authentication");
     res.redirect("/");
+});
+
+app.post("/post/delete/:post_id", csrfProtection, (req, res) => {
+    const result = postRouteParamsVerification(req, res, req.params.post_id);
+    if (result.error) {
+        return res.render("error-page");
+    }
+
+    const deletePost = db.prepare(`DELETE FROM post WHERE post_id = ? AND author_id = ?`);
+    deletePost.run(req.params.post_id, req.authenticationToken.id);
+
+    return res.redirect("/");
+});
+
+app.post("/post/edit/:post_id", csrfProtection, (req, res) => {
+    const post_id = req.params.post_id;
+    const result = postRouteParamsVerification(req, res, post_id);
+    
+    if (result.error) {
+        return res.render("error-page");
+    }
+
+    const updatedTitle = req.body.post_title.trim();
+    const updatedcontent = req.body.post_content;
+    const updatePost = db.prepare("UPDATE post SET post_title = ?, post_content = ? WHERE post_id = ? AND author_id = ?");
+    updatePost.run(
+        updatedTitle,
+        updatedcontent,
+        post_id,
+        req.authenticationToken.id
+    );
+
+    return res.redirect(`/post/${post_id}`);
 });
 
 app.post("/register", csrfProtection, async (req, res) => {
@@ -254,7 +286,7 @@ app.post("/login", csrfProtection, async (req, res) => {
     res.redirect("/");
 });
 
-app.post("/create-post", (req, res) => {
+app.post("/create-post", csrfProtection, (req, res) => {
     const postCreationValidationError = [];
 
     if (typeof req.body.title !== "string") {
@@ -288,40 +320,6 @@ app.post("/create-post", (req, res) => {
     insertPost.run(processed_title, processed_content, author_id);
 
     res.redirect("/");
-});
-
-app.post("/post/edit/:post_id", csrfProtection, (req, res) => {
-    const post_id = req.params.post_id;
-
-    if (typeof req.body.post_title !== "string") {
-        req.body.post_title = "";
-    }
-    if (typeof req.body.post_content !== "string") {
-        req.body.post_content = "";
-    }
-
-    const updtatedPostTitle = req.body.post_title.trim();
-    const updtatedPostContent = req.body.post_content;
-
-    const updatePost = db.prepare(
-        "UPDATE post SET post_title = ?, post_content = ? WHERE post_id = ?"
-    );
-    updatePost.run(updtatedPostTitle, updtatedPostContent, post_id);
-
-    res.redirect(`/post/${post_id}`);
-});
-
-// TO DO ; should I put csrfToken here ?
-
-app.post("/post/delete/:post_id", (req, res) => {
-    if (req.authenticationToken) {
-        const post_id = req.params.post_id;
-        const deletePost = db.prepare(`DELETE FROM post WHERE post_id = ?`);
-        deletePost.run(post_id);
-        return res.redirect("/");
-    } else {
-        console.log("Error");
-    }
 });
 
 const createTablePost = db.prepare(`

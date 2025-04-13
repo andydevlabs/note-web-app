@@ -9,7 +9,6 @@
         </header>
 
         <main>
-            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
             <% postCreationValidationError.forEach(error => { %>
             <p class="notice"><%= error %></p>
             <% }); %>
@@ -22,7 +21,12 @@
                     >Edit Post</a
                 >
                 <form action="/post/delete/<%= post.post_id %>" method="POST">
-                    <button type="delete">Delete Post</button>
+                    <input
+                        type="hidden"
+                        name="_csrf"
+                        value="<%= csrfToken %>"
+                    />
+                    <button type="submit">Delete Post</button>
                 </form>
             </fieldset>
         </main>
