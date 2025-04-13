@@ -1,7 +1,7 @@
-const Tokens = require("csrf");
+import Tokens from "csrf";
 const tokens = new Tokens();
 
-function csrfProtection(req, res, next) {
+const csrfProtection = (req, res, next) => {
     const csrfSecret = req.cookies._csrfSecret;
 
     if (!csrfSecret) {
@@ -11,11 +11,10 @@ function csrfProtection(req, res, next) {
     const csrfToken = req.body._csrf;
 
     if (!tokens.verify(csrfSecret, csrfToken)) {
-                console.log("This error");
         return res.render("error-page");
     }
 
     next();
 }
 
-module.exports = csrfProtection;
+export default csrfProtection;

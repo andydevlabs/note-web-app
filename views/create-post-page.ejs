@@ -17,21 +17,21 @@
 
                 <fieldset>
                     <legend>Create a new post</legend>
-                    <label for="title"><small>Title</small></label>
+                    <label for="post_title"><small>Title</small></label>
                     <input
                         type="text"
-                        id="title"
-                        name="title"
+                        id="post_title"
+                        name="post_title"
                         autocomplete="off"
-                        value="<%= locals.title || '' %>"
+                        value="<%= locals.post_title || '' %>"
                     />
-                    <label for="content"><small>Share your thoughts</small></label>
+                    <label for="post_content"><small>Share your thoughts</small></label>
                     <textarea
                         type="textarea"
-                        id="content"
-                        name="content"
+                        id="post_content"
+                        name="post_content"
                         autocomplete="off"
-                    ><%= locals.content || '' %></textarea>
+                    ></textarea>
                     <br />
                     <button type="submit">Post</button>
                 </fieldset>

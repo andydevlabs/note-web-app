@@ -1,19 +1,26 @@
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const cookieParser = require("cookie-parser");
-const express = require("express");
-const db = require("better-sqlite3")("note-app.db");
-var Tokens = require("csrf");
-const csrfProtection = require("./middleware/csrfProtection");
-require("dotenv").config();
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import cookieParser from "cookie-parser";
+import express from "express";
+import Database from "better-sqlite3";
+import Tokens from "csrf";
+import csrfProtection from "./middleware/csrfProtection.js";
+import dotenv from "dotenv";
+import verifyAuthentication from "./middleware/verifyAuthentication.js";
+import {paramaterToString } from "./helpers/paramaterToString.js";
+import { createTablePost, createTableUser } from "./database/createTable.js";
 
+dotenv.config();
 const app = express();
 const port = 5030;
 const tokens = new Tokens();
+const db = new Database("note-app.db");
 
-app.use(cookieParser());
+createTablePost();
+createTableUser();
 
 app.set("view engine", "ejs");
+app.use(cookieParser());
 app.use(express.static("public"));
 app.use(express.urlencoded({ extended: true }));
 
@@ -49,25 +56,16 @@ app.use((req, res, next) => {
     const csrfToken = tokens.create(secret);
     res.locals.csrfToken = csrfToken;
 
-    // TO DO: ask if I should create csrf token on every route or globally
-    // TO DO: clean all console.log
-
     next();
 });
 
-app.get("/", (req, res) => {
-    if (req.authenticationToken) {
-        const getAllPosts = db.prepare(
-            `SELECT * FROM post WHERE author_id = ?`
-        );
-        const allPosts = getAllPosts.all(req.authenticationToken.id);
+app.get("/", verifyAuthentication, (req, res) => {
+    const getAllPosts = db.prepare(`SELECT * FROM post WHERE author_id = ?`);
+    const allPosts = getAllPosts.all(req.authenticationToken.id);
 
-        res.locals.posts = allPosts;
+    res.locals.posts = allPosts;
 
-        return res.render("dashboard-page");
-    } else {
-        res.render("registration-page");
-    }
+    return res.render("dashboard-page");
 });
 
 app.get("/login", (req, res) => {
@@ -78,15 +76,11 @@ app.get("/register", (req, res) => {
     res.render("registration-page");
 });
 
-app.get("/create-post", (req, res) => {
+app.get("/create-post", verifyAuthentication, (req, res) => {
     res.render("create-post-page");
 });
 
 const postRouteParamsVerification = (req, res, toVerify) => {
-    if (!req.authenticationToken) {
-        return { error: true, message: "Not authenticated" };
-    }
-
     const params = parseInt(toVerify);
     if (isNaN(params) || params <= 0) {
         return { error: true, message: "Invalid post ID" };
@@ -103,7 +97,7 @@ const postRouteParamsVerification = (req, res, toVerify) => {
     return { error: false, post: post };
 };
 
-app.get("/post/edit/:post_id", (req, res) => {
+app.get("/post/edit/:post_id", verifyAuthentication, (req, res) => {
     const result = postRouteParamsVerification(req, res, req.params.post_id);
     if (result.error) {
         return res.render("error-page");
@@ -111,7 +105,7 @@ app.get("/post/edit/:post_id", (req, res) => {
     return res.render("edit-post-page", { post: result.post });
 });
 
-app.get("/post/:post_id", (req, res) => {
+app.get("/post/:post_id", verifyAuthentication, (req, res) => {
     const result = postRouteParamsVerification(req, res, req.params.post_id);
     if (result.error) {
         return res.render("error-page");
@@ -124,48 +118,61 @@ app.get("/logout", (req, res) => {
     res.redirect("/");
 });
 
-app.post("/post/delete/:post_id", csrfProtection, (req, res) => {
-    const result = postRouteParamsVerification(req, res, req.params.post_id);
-    if (result.error) {
-        return res.render("error-page");
+app.post(
+    "/post/delete/:post_id",
+    csrfProtection,
+    verifyAuthentication,
+    (req, res) => {
+        const result = postRouteParamsVerification(
+            req,
+            res,
+            req.params.post_id
+        );
+        if (result.error) {
+            return res.render("error-page");
+        }
+
+        const deletePost = db.prepare(
+            `DELETE FROM post WHERE post_id = ? AND author_id = ?`
+        );
+        deletePost.run(req.params.post_id, req.authenticationToken.id);
+
+        return res.redirect("/");
     }
+);
 
-    const deletePost = db.prepare(`DELETE FROM post WHERE post_id = ? AND author_id = ?`);
-    deletePost.run(req.params.post_id, req.authenticationToken.id);
+app.post(
+    "/post/edit/:post_id",
+    csrfProtection,
+    verifyAuthentication,
+    (req, res) => {
+        const post_id = req.params.post_id;
+        const result = postRouteParamsVerification(req, res, post_id);
 
-    return res.redirect("/");
-});
+        if (result.error) {
+            return res.render("error-page");
+        }
 
-app.post("/post/edit/:post_id", csrfProtection, (req, res) => {
-    const post_id = req.params.post_id;
-    const result = postRouteParamsVerification(req, res, post_id);
-    
-    if (result.error) {
-        return res.render("error-page");
+        const updatedTitle = req.body.post_title.trim();
+        const updatedcontent = req.body.post_content;
+        const updatePost = db.prepare(
+            "UPDATE post SET post_title = ?, post_content = ? WHERE post_id = ? AND author_id = ?"
+        );
+        updatePost.run(
+            updatedTitle,
+            updatedcontent,
+            post_id,
+            req.authenticationToken.id
+        );
+
+        return res.redirect(`/post/${post_id}`);
     }
-
-    const updatedTitle = req.body.post_title.trim();
-    const updatedcontent = req.body.post_content;
-    const updatePost = db.prepare("UPDATE post SET post_title = ?, post_content = ? WHERE post_id = ? AND author_id = ?");
-    updatePost.run(
-        updatedTitle,
-        updatedcontent,
-        post_id,
-        req.authenticationToken.id
-    );
-
-    return res.redirect(`/post/${post_id}`);
-});
+);
 
 app.post("/register", csrfProtection, async (req, res) => {
     const registrationValidationError = [];
-
-    if (typeof req.body.username !== "string") {
-        req.body.username = "";
-    }
-    if (typeof req.body.password !== "string") {
-        req.body.password = "";
-    }
+    paramaterToString(req.body, "username");
+    paramaterToString(req.body, "password");
 
     const processed_username = req.body.username.trim();
 
@@ -228,13 +235,8 @@ app.post("/register", csrfProtection, async (req, res) => {
 
 app.post("/login", csrfProtection, async (req, res) => {
     const loginValidationError = [];
-
-    if (typeof req.body.username !== "string") {
-        req.body.username = "";
-    }
-    if (typeof req.body.password !== "string") {
-        req.body.password = "";
-    }
+    paramaterToString(req.body, "username");
+    paramaterToString(req.body, "password");
 
     const logged_username = req.body.username.trim();
     const logged_password = req.body.password;
@@ -286,18 +288,13 @@ app.post("/login", csrfProtection, async (req, res) => {
     res.redirect("/");
 });
 
-app.post("/create-post", csrfProtection, (req, res) => {
+app.post("/create-post", csrfProtection, verifyAuthentication, (req, res) => {
     const postCreationValidationError = [];
+    paramaterToString(req.body, "post_title");
+    paramaterToString(req.body, "post_content");
 
-    if (typeof req.body.title !== "string") {
-        req.body.title = "";
-    }
-    if (typeof req.body.content !== "string") {
-        req.body.content = "";
-    }
-
-    const processed_title = req.body.title.trim();
-    const processed_content = req.body.content;
+    const processed_title = req.body.post_title.trim();
+    const processed_content = req.body.post_content;
 
     if (!processed_title)
         postCreationValidationError.push("You must provide a title");
@@ -308,8 +305,8 @@ app.post("/create-post", csrfProtection, (req, res) => {
     if (postCreationValidationError.length) {
         return res.render("create-post-page", {
             postCreationValidationError,
-            title: processed_title,
-            content: processed_content,
+            post_title: processed_title,
+            post_content: processed_content,
         });
     }
 
@@ -321,24 +318,6 @@ app.post("/create-post", csrfProtection, (req, res) => {
 
     res.redirect("/");
 });
-
-const createTablePost = db.prepare(`
-    CREATE TABLE IF NOT EXISTS post(
-    post_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    post_title STRING NOT NULL,
-    post_content STRING NOT NULL,
-    post_creation_date TIMESTAMP NOT NULL DEFAULT (datetime('now', 'utc')),
-    author_id INTEGER NOT NULL,
-    FOREIGN KEY (author_id) REFERENCES "user"(id))
-    `);
-createTablePost.run();
-
-const createTableUser = db.prepare(`
-    CREATE TABLE IF NOT EXISTS user(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username STRING NOT NULL UNIQUE,
-    password STRING NOT NULL)`);
-createTableUser.run();
 
 app.listen(port, () => {
     console.log(`Server listening on port ${port}`);
